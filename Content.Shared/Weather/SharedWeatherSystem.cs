@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using Content.Shared.Light.Components;
 using Content.Shared.Light.EntitySystems;
 using Content.Shared.Maps;
@@ -195,5 +196,32 @@ public abstract partial class SharedWeatherSystem : EntitySystem
 
         // Otherwise, add the specified weather
         return TryAddWeather(mapUid.Value, weatherProto.Value, out weatherEnt, duration);
+    }
+
+    /// <summary>
+    /// Returns the strongest active weather's wind vector (direction * strength) for the given map,
+    /// scaled by the weather's current intensity (fade-in/fade-out). Zero if no weather is active.
+    /// </summary>
+    public Vector2 GetWindVelocity(EntityUid mapUid)
+    {
+        var query = EntityQueryEnumerator<WeatherStatusEffectComponent, StatusEffectComponent>();
+        while (query.MoveNext(out var uid, out var weather, out var status))
+        {
+            if (status.AppliedTo != mapUid || weather.Scrolling == null)
+                continue;
+
+            var percent = GetWeatherPercent((uid, status));
+            return weather.Scrolling.Value * percent;
+        }
+
+        return Vector2.Zero;
+    }
+
+    public Vector2 GetWindVelocity(MapId mapId)
+    {
+        if (!_mapSystem.TryGetMap(mapId, out var mapUid))
+            return Vector2.Zero;
+
+        return GetWindVelocity(mapUid.Value);
     }
 }

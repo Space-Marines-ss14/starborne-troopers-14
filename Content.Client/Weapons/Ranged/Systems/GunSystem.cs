@@ -3,6 +3,7 @@ using System.Numerics;
 using Content.Client.Animations;
 using Content.Client.Clickable;
 using Content.Client.Items;
+using Content.Client.Projectiles;
 using Content.Client.Weapons.Ranged.Components;
 using Content.Shared.Camera;
 using Content.Shared.CCVar;
@@ -10,6 +11,7 @@ using Content.Shared.CombatMode;
 using Content.Shared.Damage;
 using Content.Shared.Mobs.Systems;
 using Content.Shared.Physics;
+using Content.Shared.Projectiles;
 using Content.Shared.Weapons.Hitscan.Components;
 using Content.Shared.Weapons.Ranged;
 using Content.Shared.Weapons.Ranged.Components;
@@ -29,6 +31,7 @@ using Robust.Shared.Input;
 using Robust.Shared.Map;
 using Robust.Shared.Map.Components;
 using Robust.Shared.Physics;
+using Robust.Shared.Physics.Components;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
 using SharedGunSystem = Content.Shared.Weapons.Ranged.Systems.SharedGunSystem;
@@ -257,9 +260,16 @@ public sealed partial class GunSystem : SharedGunSystem
                         MuzzleFlash(gun, cartridge, worldAngle, user);
                         Audio.PlayPredicted(gun.Comp.SoundGunshotModified, gun, user);
                         Recoil(user, direction, gun.Comp.CameraRecoilScalarModified);
-                        // TODO: Can't predict entity deletions.
-                        //if (cartridge.DeleteOnSpawn)
-                        //    Del(cartridge.Owner);
+
+                        var tracerEnt = Spawn(cartridge.Prototype, fromCoordinates);
+                        RemCompDeferred<ProjectileComponent>(tracerEnt);
+                        RemCompDeferred<PhysicsComponent>(tracerEnt);
+
+                        var tracerComp = AddComp<ClientBulletTracerComponent>(tracerEnt);
+                        tracerComp.Anchor = user ?? gun.Owner; // следим за стрелком, если есть, иначе за самим оружием
+                        tracerComp.Direction = -direction.Normalized();
+                        tracerComp.Speed = gun.Comp.ProjectileSpeedModified;
+                        tracerComp.RemainingLifetime = 0.3f;
                     }
                     else
                     {
@@ -270,19 +280,6 @@ public sealed partial class GunSystem : SharedGunSystem
                     if (IsClientSide(ent!.Value))
                         Del(ent.Value);
 
-                    break;
-                case AmmoComponent newAmmo:
-                    MuzzleFlash(gun, newAmmo, worldAngle, user);
-                    Audio.PlayPredicted(gun.Comp.SoundGunshotModified, gun, user);
-                    Recoil(user, direction, gun.Comp.CameraRecoilScalarModified);
-                    if (IsClientSide(ent!.Value))
-                        Del(ent.Value);
-                    else
-                        RemoveShootable(ent.Value);
-                    break;
-                case HitscanAmmoComponent:
-                    Audio.PlayPredicted(gun.Comp.SoundGunshotModified, gun, user);
-                    Recoil(user, direction, gun.Comp.CameraRecoilScalarModified);
                     break;
             }
         }

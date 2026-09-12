@@ -61,6 +61,7 @@ public record struct HitscanRaycastFiredData
     /// Player who shot the gun, if null the gun was fired by itself.
     /// </summary>
     public EntityUid? Shooter;
+    public float Distance;
 }
 
 /// <summary>

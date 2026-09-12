@@ -67,6 +67,7 @@ public sealed partial class HitscanBasicRaycastSystem : EntitySystem
             Gun = args.Gun,
             Shooter = args.Shooter,
             HitEntity = result?.HitEntity,
+            Distance = distanceTried,
         };
 
         var attemptEvent = new AttemptHitscanRaycastFiredEvent { Data = data };

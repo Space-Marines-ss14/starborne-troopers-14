@@ -14,4 +14,13 @@ public sealed partial class HitscanBasicDamageComponent : Component
     /// </summary>
     [DataField(required: true)]
     public DamageSpecifier Damage;
+
+    [DataField]
+    public float FalloffStart = 10f;
+
+    [DataField]
+    public float FalloffEnd = 20f;
+
+    [DataField]
+    public float MinDamageMultiplier = 0.4f;
 }

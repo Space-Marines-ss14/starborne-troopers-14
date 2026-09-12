@@ -1,3 +1,4 @@
+using System.Numerics;
 using Content.Shared.Projectiles;
 using Content.Shared.Weapons.Ranged.Systems;
 using Robust.Client.Animations;
@@ -10,11 +11,68 @@ public sealed partial class ProjectileSystem : SharedProjectileSystem
 {
     [Dependency] private AnimationPlayerSystem _player = default!;
     [Dependency] private SpriteSystem _sprite = default!;
+    [Dependency] private SharedTransformSystem _transformSystem = default!;
+
+    private readonly Dictionary<EntityUid, Vector2> _pendingReveal = new();
 
     public override void Initialize()
     {
         base.Initialize();
         SubscribeNetworkEvent<ImpactEffectEvent>(OnProjectileImpact);
+        SubscribeLocalEvent<ProjectileComponent, ComponentStartup>(OnProjectileStartup);
+        SubscribeLocalEvent<ProjectileComponent, ComponentShutdown>(OnProjectileShutdown);
+    }
+
+    private void OnProjectileStartup(EntityUid uid, ProjectileComponent component, ComponentStartup args)
+    {
+        if (!TryComp<SpriteComponent>(uid, out var sprite))
+            return;
+
+        sprite.Visible = false;
+        _pendingReveal[uid] = _transformSystem.GetWorldPosition(uid);
+    }
+
+    private void OnProjectileShutdown(EntityUid uid, ProjectileComponent component, ComponentShutdown args)
+    {
+        _pendingReveal.Remove(uid);
+    }
+
+    public override void Update(float frameTime)
+    {
+        base.Update(frameTime);
+
+        if (_pendingReveal.Count == 0)
+            return;
+
+        // Reveal each projectile's sprite only once it has actually moved from its spawn
+        // position — this hides the single static frame before network interpolation
+        // catches up, instead of showing the bullet "hanging" in place.
+        List<EntityUid>? toRemove = null;
+
+        foreach (var (uid, lastPos) in _pendingReveal)
+        {
+            if (Deleted(uid) || !TryComp<SpriteComponent>(uid, out var sprite))
+            {
+                toRemove ??= new List<EntityUid>();
+                toRemove.Add(uid);
+                continue;
+            }
+
+            var currentPos = _transformSystem.GetWorldPosition(uid);
+
+            if ((currentPos - lastPos).LengthSquared() > 0.0001f)
+            {
+                sprite.Visible = true;
+                toRemove ??= new List<EntityUid>();
+                toRemove.Add(uid);
+            }
+        }
+
+        if (toRemove != null)
+        {
+            foreach (var uid in toRemove)
+                _pendingReveal.Remove(uid);
+        }
     }
 
     private void OnProjectileImpact(ImpactEffectEvent ev)

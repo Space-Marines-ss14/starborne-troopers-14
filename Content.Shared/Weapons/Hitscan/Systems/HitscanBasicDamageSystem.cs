@@ -20,9 +20,10 @@ public sealed partial class HitscanBasicDamageSystem : EntitySystem
         if (args.Data.HitEntity == null)
             return;
 
-        var dmg = ent.Comp.Damage * _damage.UniversalHitscanDamageModifier;
+        var falloff = GetFalloffMultiplier(ent.Comp, args.Data.Distance);
+        var dmg = ent.Comp.Damage * _damage.UniversalHitscanDamageModifier * falloff;
 
-        if(!_damage.TryChangeDamage(args.Data.HitEntity.Value, dmg, out var damageDealt, origin: args.Data.Gun))
+        if (!_damage.TryChangeDamage(args.Data.HitEntity.Value, dmg, out var damageDealt, origin: args.Data.Gun))
             return;
 
         var damageEvent = new HitscanDamageDealtEvent
@@ -32,5 +33,17 @@ public sealed partial class HitscanBasicDamageSystem : EntitySystem
         };
 
         RaiseLocalEvent(ent, ref damageEvent);
+    }
+
+    private static float GetFalloffMultiplier(HitscanBasicDamageComponent comp, float distance)
+    {
+        if (distance <= comp.FalloffStart)
+            return 1f;
+
+        if (distance >= comp.FalloffEnd)
+            return comp.MinDamageMultiplier;
+
+        var t = (distance - comp.FalloffStart) / (comp.FalloffEnd - comp.FalloffStart);
+        return MathHelper.Lerp(1f, comp.MinDamageMultiplier, t);
     }
 }

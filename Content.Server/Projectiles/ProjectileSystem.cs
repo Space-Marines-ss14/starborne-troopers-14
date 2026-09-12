@@ -1,3 +1,4 @@
+using System.Numerics;
 using Content.Server.Administration.Logs;
 using Content.Server.Destructible;
 using Content.Server.Effects;
@@ -9,7 +10,10 @@ using Content.Shared.Damage.Systems;
 using Content.Shared.Database;
 using Content.Shared.FixedPoint;
 using Content.Shared.Projectiles;
+using Content.Shared.Weather;
+using Robust.Shared.Physics.Components;
 using Robust.Shared.Physics.Events;
+using Robust.Shared.Physics.Systems;
 using Robust.Shared.Player;
 
 namespace Content.Server.Projectiles;
@@ -22,6 +26,9 @@ public sealed partial class ProjectileSystem : SharedProjectileSystem
     [Dependency] private DestructibleSystem _destructibleSystem = default!;
     [Dependency] private GunSystem _guns = default!;
     [Dependency] private SharedCameraRecoilSystem _sharedCameraRecoil = default!;
+    [Dependency] private SharedTransformSystem _transformSystem = default!;
+    [Dependency] private SharedWeatherSystem _weather = default!;
+    [Dependency] private SharedPhysicsSystem _physics = default!;
 
     public override void Initialize()
     {
@@ -37,7 +44,7 @@ public sealed partial class ProjectileSystem : SharedProjectileSystem
             return;
 
         var target = args.OtherEntity;
-        // it's here so this check is only done once before possible hit
+
         var attemptEv = new ProjectileReflectAttemptEvent(uid, component, false);
         RaiseLocalEvent(target, ref attemptEv);
         if (attemptEv.Cancelled)
@@ -46,7 +53,11 @@ public sealed partial class ProjectileSystem : SharedProjectileSystem
             return;
         }
 
-        var ev = new ProjectileHitEvent(component.Damage * _damageableSystem.UniversalProjectileDamageModifier, target, component.Shooter);
+        var currentPos = _transformSystem.GetWorldPosition(uid);
+        var travelDistance = (currentPos - component.SpawnPosition).Length();
+        var falloff = DamageFalloffHelper.GetMultiplier(travelDistance, component.FalloffStart, component.FalloffEnd, component.MinDamageMultiplier);
+
+        var ev = new ProjectileHitEvent(component.Damage * _damageableSystem.UniversalProjectileDamageModifier * falloff, target, component.Shooter);
         RaiseLocalEvent(uid, ref ev);
 
         var otherName = ToPrettyString(target);
@@ -128,5 +139,27 @@ public sealed partial class ProjectileSystem : SharedProjectileSystem
         }
 
         return true;
+    }
+
+    public override void Update(float frameTime)
+    {
+        base.Update(frameTime);
+
+        var query = EntityQueryEnumerator<ProjectileComponent, PhysicsComponent, TransformComponent>();
+        while (query.MoveNext(out var uid, out var proj, out var physics, out var xform))
+        {
+            if (xform.MapUid == null)
+                continue;
+
+            var wind = _weather.GetWindVelocity(xform.MapUid.Value);
+            if (wind == Vector2.Zero)
+                continue;
+
+            // Small persistent acceleration towards the wind vector, not an instant velocity snap —
+            // so the deflection visibly accumulates over the bullet's flight time.
+            const float windInfluence = 0.5f;
+            var newVelocity = physics.LinearVelocity + wind * windInfluence * frameTime;
+            _physics.SetLinearVelocity(uid, newVelocity, body: physics);
+        }
     }
 }

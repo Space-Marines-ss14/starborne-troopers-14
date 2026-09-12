@@ -1,3 +1,4 @@
+using System.Numerics;
 using Content.Shared.Damage;
 using Content.Shared.FixedPoint;
 using Robust.Shared.Audio;
@@ -98,4 +99,40 @@ public sealed partial class ProjectileComponent : Component
     /// </summary>
     [DataField]
     public FixedPoint2 PenetrationAmount = FixedPoint2.Zero;
+
+    /// <summary>
+    /// Мировые координаты точки, откуда снаряд был выпущен. Нужно для расчёта урона по дистанции.
+    /// </summary>
+    [DataField]
+    public Vector2 SpawnPosition;
+
+    /// <summary>
+    /// Дистанция, до которой урон полный (100%).
+    /// </summary>
+    [DataField]
+    public float FalloffStart = 10f;
+
+    /// <summary>
+    /// Дистанция, на которой урон достигает минимума.
+    /// </summary>
+    [DataField]
+    public float FalloffEnd = 30f;
+
+    /// <summary>
+    /// Множитель урона на максимальной дистанции.
+    /// </summary>
+    [DataField]
+    public float MinDamageMultiplier = 0.4f;
+
+    [DataField]
+    public float DriftStartDistance = 15f;
+
+    [DataField]
+    public Angle DriftRatePerSecond = Angle.FromDegrees(0f);
+
+    [DataField]
+    public float DriftDirection;
+
+    [DataField]
+    public float VisualRevealDelay = 0.02f;
 }

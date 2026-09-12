@@ -454,6 +454,8 @@ public abstract partial class SharedGunSystem : EntitySystem
 
         var projectile = EnsureComp<ProjectileComponent>(uid);
         projectile.Weapon = gunUid;
+        projectile.SpawnPosition = TransformSystem.GetWorldPosition(uid); // ← добавлено
+        projectile.DriftDirection = Random.Prob(0.5f) ? 1f : -1f;
         var shooter = user ?? gunUid;
         if (shooter != null)
             Projectiles.SetShooter(uid, projectile, shooter.Value);
