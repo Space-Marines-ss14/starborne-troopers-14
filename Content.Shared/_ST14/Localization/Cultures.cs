@@ -9,6 +9,7 @@ public static class Cultures
 {
     public const string Default = "en-US";
 
+    // Empty means "no explicit pick", the client follows the server language.
     public const string Auto = "";
 
     public static readonly string[] Supported =

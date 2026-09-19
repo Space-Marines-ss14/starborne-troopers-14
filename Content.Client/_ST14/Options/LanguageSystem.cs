@@ -35,6 +35,7 @@ public sealed partial class LanguageSystem : EntitySystem
     private int _syncAttempts;
     private float _syncTimer;
 
+    // Applied on the next tick, never inside the button handler that set them.
     public void ForceReload()
     {
         _reloadQueued = true;
@@ -86,6 +87,7 @@ public sealed partial class LanguageSystem : EntitySystem
         RebuildUi();
     }
 
+    // Resend until the server answers: the channel may not be ready yet on connect.
     private void SyncLanguage(float frameTime)
     {
         if (_player.LocalSession == null)
@@ -134,6 +136,7 @@ public sealed partial class LanguageSystem : EntitySystem
         SendLanguage();
     }
 
+    // An explicit client pick always beats the server language.
     private void OnServerLanguage(ServerLanguageMessage message, EntitySessionEventArgs args)
     {
         _synced = true;
@@ -183,6 +186,7 @@ public sealed partial class LanguageSystem : EntitySystem
         RaiseNetworkEvent(new SetLanguageMessage(_configuration.GetCVar(ST14CVars.ClientLanguage)));
     }
 
+    // XAML {Loc} is resolved once at load, so the windows have to be recreated.
     private void RebuildUi()
     {
         switch (_state.CurrentState)
