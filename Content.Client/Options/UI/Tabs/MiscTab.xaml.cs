@@ -55,7 +55,7 @@ public sealed partial class MiscTab : Control
         Control.AddOptionCheckBox(CCVars.StaticStorageUI, StaticStorageUI);
         Control.AddOptionCheckBox(CCVars.InterfaceChatFollowButton, ChatFollowButton);
 
-        LanguageOption.Add(Control, DropDownLanguage); // ST14
+        LanguageOption.Add(Control, DropDownLanguage, ReloadLanguage); // ST14
         Control.Initialize();
     }
 }

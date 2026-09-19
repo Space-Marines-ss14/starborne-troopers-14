@@ -9,6 +9,8 @@
                 <Label Text="{Loc 'st14-options-general-language'}"
                        StyleClasses="LabelKeyText"/>
                 <ui:OptionDropDown Name="DropDownLanguage" Title="{Loc 'st14-options-language'}" />
+                <Button Name="ReloadLanguage" Text="{Loc 'st14-options-language-reload'}"
+                        HorizontalAlignment="Left" Margin="0 5 0 0" />
                 <!-- ST14-STOP -->
                 <Label Text="{Loc 'ui-options-general-ui-style'}"
                        StyleClasses="LabelKeyText"/>

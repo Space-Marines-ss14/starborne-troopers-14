@@ -1,8 +1,10 @@
 using System.Globalization;
 using Content.Client.Gameplay;
+using Content.Client.Lobby;
 using Content.Client._ST14.Localization;
 using Content.Client.UserInterface.Systems.EscapeMenu;
 using Content.Shared._ST14.Localization;
+using Robust.Client;
 using Robust.Client.Player;
 using Robust.Client.State;
 using Robust.Client.UserInterface;
@@ -14,6 +16,10 @@ namespace Content.Client._ST14.Options;
 
 public sealed partial class LanguageSystem : EntitySystem
 {
+    private const int MaxSyncAttempts = 20;
+    private const float SyncRetryDelay = 0.5f;
+
+    [Dependency] private IBaseClient _client = default!;
     [Dependency] private IConfigurationManager _configuration = default!;
     [Dependency] private ILocalizationManager _localization = default!;
     [Dependency] private IPlayerManager _player = default!;
@@ -23,6 +29,17 @@ public sealed partial class LanguageSystem : EntitySystem
 
     private bool _applyQueued;
     private bool _rebuildQueued;
+    private bool _reloadQueued;
+
+    private bool _synced;
+    private int _syncAttempts;
+    private float _syncTimer;
+
+    public void ForceReload()
+    {
+        _reloadQueued = true;
+        _rebuildQueued = true;
+    }
 
     public override void Initialize()
     {
@@ -30,6 +47,7 @@ public sealed partial class LanguageSystem : EntitySystem
 
         _configuration.OnValueChanged(ST14CVars.ClientLanguage, OnLanguageChanged);
         _player.LocalSessionChanged += OnLocalSessionChanged;
+        _client.RunLevelChanged += OnRunLevelChanged;
 
         SubscribeNetworkEvent<ServerLanguageMessage>(OnServerLanguage);
     }
@@ -39,11 +57,18 @@ public sealed partial class LanguageSystem : EntitySystem
         base.Shutdown();
 
         _player.LocalSessionChanged -= OnLocalSessionChanged;
+        _client.RunLevelChanged -= OnRunLevelChanged;
     }
 
     public override void Update(float frameTime)
     {
         base.Update(frameTime);
+
+        if (_reloadQueued)
+        {
+            _reloadQueued = false;
+            _localization.ReloadLocalizations();
+        }
 
         if (_applyQueued)
         {
@@ -51,28 +76,68 @@ public sealed partial class LanguageSystem : EntitySystem
             ApplyCulture();
         }
 
+        SyncLanguage(frameTime);
+
         if (!_rebuildQueued)
             return;
 
         _rebuildQueued = false;
 
-        SendLanguage();
         RebuildUi();
+    }
+
+    private void SyncLanguage(float frameTime)
+    {
+        if (_player.LocalSession == null)
+        {
+            ResetSync();
+            return;
+        }
+
+        if (_synced || _syncAttempts >= MaxSyncAttempts)
+            return;
+
+        _syncTimer -= frameTime;
+
+        if (_syncTimer > 0f)
+            return;
+
+        _syncTimer = SyncRetryDelay;
+        _syncAttempts++;
+
+        SendLanguage();
+    }
+
+    private void ResetSync()
+    {
+        _synced = false;
+        _syncAttempts = 0;
+        _syncTimer = 0f;
     }
 
     private void OnLanguageChanged(string language)
     {
         _applyQueued = true;
         _rebuildQueued = true;
+        ResetSync();
     }
 
     private void OnLocalSessionChanged((ICommonSession? Old, ICommonSession? New) args)
     {
+        ResetSync();
+        SendLanguage();
+    }
+
+    private void OnRunLevelChanged(object? sender, RunLevelChangedEventArgs args)
+    {
+        ResetSync();
         SendLanguage();
     }
 
     private void OnServerLanguage(ServerLanguageMessage message, EntitySessionEventArgs args)
     {
+        _synced = true;
+
         if (HasExplicitLanguage())
             return;
 
@@ -120,17 +185,25 @@ public sealed partial class LanguageSystem : EntitySystem
 
     private void RebuildUi()
     {
-        if (_state.CurrentState is not GameplayState gameplay)
-            return;
+        switch (_state.CurrentState)
+        {
+            case GameplayState gameplay:
+                var escape = _ui.GetUIController<EscapeUIController>();
+                escape.OnStateExited(gameplay);
+                escape.OnStateEntered(gameplay);
 
-        var escape = _ui.GetUIController<EscapeUIController>();
-        escape.OnStateExited(gameplay);
-        escape.OnStateEntered(gameplay);
+                _ui.GetUIController<OptionsUIController>().ReloadWindow();
 
-        _ui.GetUIController<OptionsUIController>().ReloadWindow();
+                _randomNames.RefreshAll();
 
-        _randomNames.RefreshAll();
+                gameplay.ReloadMainScreen();
+                break;
 
-        gameplay.ReloadMainScreen();
+            case LobbyState lobby:
+                var lobbyUi = _ui.GetUIController<LobbyUIController>();
+                lobbyUi.OnStateExited(lobby);
+                lobbyUi.OnStateEntered(lobby);
+                break;
+        }
     }
 }
