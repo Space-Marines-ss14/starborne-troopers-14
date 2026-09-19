@@ -1,5 +1,7 @@
 using System.Linq;
+using Content.Server._ST14.Localization; // ST14
 using Content.Server.Verbs;
+using Content.Shared._ST14.Localization; // ST14
 using Content.Shared.Examine;
 using Content.Shared.Verbs;
 using JetBrains.Annotations;
@@ -12,6 +14,7 @@ namespace Content.Server.Examine
     public sealed partial class ExamineSystem : ExamineSystemShared
     {
         [Dependency] private VerbSystem _verbSystem = default!;
+        [Dependency] private ServerLanguageSystem _language = default!; // ST14
 
         private readonly FormattedMessage _entityNotFoundMessage = new();
         private readonly FormattedMessage _entityOutOfRangeMessage = new();
@@ -69,9 +72,21 @@ namespace Content.Server.Examine
             if (request.GetVerbs)
                 verbs = _verbSystem.GetLocalVerbs(entity, playerEnt, typeof(ExamineVerb));
 
-            var text = GetExamineText(entity, player.AttachedEntity);
-            RaiseNetworkEvent(new ExamineSystemMessages.ExamineInfoResponseMessage(
-                request.NetEntity, request.Id, text, verbs?.ToList()), channel);
+            // ST14-START
+            var languageCulture = _language.GetCulture(session);
+            var cultureScope = languageCulture != null ? new CultureScope(languageCulture) : default(CultureScope);
+
+            try
+            {
+                var text = GetExamineText(entity, player.AttachedEntity);
+                RaiseNetworkEvent(new ExamineSystemMessages.ExamineInfoResponseMessage(
+                    request.NetEntity, request.Id, text, verbs?.ToList()), channel);
+            }
+            finally
+            {
+                cultureScope.Dispose();
+            }
+            // ST14-STOP
         }
     }
 }
