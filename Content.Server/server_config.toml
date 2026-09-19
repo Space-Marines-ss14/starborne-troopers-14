@@ -153,7 +153,7 @@ enabled = false
 # ST14-START
 [st14]
 # Language used by the server itself: what it generates in chat, entity names, random metadata, and so on.
-# Empty string means "fall back to loc.culture_name".
+# Empty string means "use the base content language" (ru-RU).
 # Players may override it for themselves in the client options, the server language is only the default.
 server_language = "ru-RU"
 # ST14-STOP

@@ -1,13 +1,13 @@
 using System.Globalization;
 using System.Linq;
-using Robust.Shared;
 using Robust.Shared.Configuration;
 
 namespace Content.Shared._ST14.Localization;
 
 public static class Cultures
 {
-    public const string Default = "en-US";
+    // Base culture of the content, must match ContentLocalizationManager.Culture.
+    public const string Default = "ru-RU";
 
     // Empty means "no explicit pick", the client follows the server language.
     public const string Auto = "";
@@ -30,7 +30,7 @@ public static class Cultures
         if (IsSupported(chosen))
             return new CultureInfo(chosen);
 
-        return ResolveFallback(configuration);
+        return new CultureInfo(Default);
     }
 
     public static CultureInfo ResolveServer(IConfigurationManager configuration)
@@ -40,13 +40,6 @@ public static class Cultures
         if (IsSupported(chosen))
             return new CultureInfo(chosen);
 
-        return ResolveFallback(configuration);
-    }
-
-    private static CultureInfo ResolveFallback(IConfigurationManager configuration)
-    {
-        var saved = configuration.GetCVar(CVars.LocCultureName);
-
-        return new CultureInfo(IsSupported(saved) ? saved : Default);
+        return new CultureInfo(Default);
     }
 }
