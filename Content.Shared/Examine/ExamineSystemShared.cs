@@ -1,4 +1,5 @@
 using System.Linq;
+using Content.Shared._ST14.Localization; // ST14
 using Content.Shared.Eye.Blinding.Components;
 using Content.Shared.Ghost;
 using Content.Shared.Interaction;
@@ -375,10 +376,17 @@ namespace Content.Shared.Examine
             var hasDescription = false;
             var metadata = MetaData(entity);
 
+            // ST14-START
+            var description = metadata.EntityDescription;
+
+            if (metadata.EntityPrototype is { } st14Prototype && description == st14Prototype.Description)
+                description = EntityLoc.GetDescription(st14Prototype);
+            // ST14-STOP
+
             //Add an entity description if one is declared
-            if (!string.IsNullOrEmpty(metadata.EntityDescription))
+            if (!string.IsNullOrEmpty(description))
             {
-                message.AddMarkupOrThrow(metadata.EntityDescription);
+                message.AddMarkupOrThrow(description);
                 hasDescription = true;
             }
 

@@ -150,6 +150,14 @@ level = 2
 # Write logs to disk? True to enable, false to disable.
 enabled = false
 
+# ST14-START
+[st14]
+# Language used by the server itself: what it generates in chat, entity names, random metadata, and so on.
+# Empty string means "use the base content language" (ru-RU).
+# Players may override it for themselves in the client options, the server language is only the default.
+server_language = "ru-RU"
+# ST14-STOP
+
 # For a full list of options, you can view the code where all CVars are defined:
 # Robust Toolbox CVars: https://github.com/space-wizards/RobustToolbox/blob/master/Robust.Shared/CVars.cs
 # Space Station 14 specific CVars: https://github.com/space-wizards/space-station-14/tree/master/Content.Shared/CCVar

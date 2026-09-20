@@ -5,6 +5,11 @@
     <BoxContainer Orientation="Vertical">
         <ScrollContainer VerticalExpand="True" HorizontalExpand="True">
             <BoxContainer Orientation="Vertical" Margin="8 8 8 8" VerticalExpand="True">
+                <!-- ST14-START -->
+                <Label Text="{Loc 'st14-options-general-language'}"
+                       StyleClasses="LabelKeyText"/>
+                <ui:OptionDropDown Name="DropDownLanguage" Title="{Loc 'st14-options-language'}" />
+                <!-- ST14-STOP -->
                 <Label Text="{Loc 'ui-options-general-ui-style'}"
                        StyleClasses="LabelKeyText"/>
                 <ui:OptionDropDown Name="DropDownHudTheme" Title="{Loc 'ui-options-hud-theme'}" />
