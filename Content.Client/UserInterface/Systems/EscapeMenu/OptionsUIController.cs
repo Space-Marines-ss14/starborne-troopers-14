@@ -53,28 +53,6 @@ public sealed partial class OptionsUIController : UIController
         _optionsWindow.MoveToFront();
     }
 
-    // ST14-START
-    public void ReloadWindow()
-    {
-        if (_optionsWindow is not { Disposed: false })
-            return;
-
-        var wasOpen = _optionsWindow.IsOpen;
-        var tab = _optionsWindow.Tabs.CurrentTab;
-
-        _optionsWindow.Dispose();
-        EnsureWindow();
-
-        if (!wasOpen)
-            return;
-
-        _optionsWindow.UpdateTabs();
-        _optionsWindow.OpenCentered();
-        _optionsWindow.MoveToFront();
-        _optionsWindow.Tabs.CurrentTab = tab;
-    }
-    // ST14-STOP
-
     public void ToggleWindow()
     {
         EnsureWindow();

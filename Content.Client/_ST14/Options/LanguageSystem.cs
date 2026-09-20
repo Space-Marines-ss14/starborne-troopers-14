@@ -1,8 +1,6 @@
+using System;
 using System.Globalization;
-using Content.Client.Gameplay;
-using Content.Client.Lobby;
 using Content.Client._ST14.Localization;
-using Content.Client.UserInterface.Systems.EscapeMenu;
 using Content.Shared._ST14.Localization;
 using Robust.Client;
 using Robust.Client.Player;
@@ -29,18 +27,15 @@ public sealed partial class LanguageSystem : EntitySystem
 
     private bool _applyQueued;
     private bool _rebuildQueued;
-    private bool _reloadQueued;
+    private bool _restartPromptQueued;
+
+    private LanguageRestartWindow? _restartWindow;
+
+    private CultureInfo? _pendingCulture;
 
     private bool _synced;
     private int _syncAttempts;
     private float _syncTimer;
-
-    // Applied on the next tick, never inside the button handler that set them.
-    public void ForceReload()
-    {
-        _reloadQueued = true;
-        _rebuildQueued = true;
-    }
 
     public override void Initialize()
     {
@@ -61,20 +56,22 @@ public sealed partial class LanguageSystem : EntitySystem
         _client.RunLevelChanged -= OnRunLevelChanged;
     }
 
-    public override void Update(float frameTime)
+    // FrameUpdate since tick updates are skipped on non-predicted ticks
+    public override void FrameUpdate(float frameTime)
     {
-        base.Update(frameTime);
+        base.FrameUpdate(frameTime);
 
-        if (_reloadQueued)
-        {
-            _reloadQueued = false;
-            _localization.ReloadLocalizations();
-        }
-
-        if (_applyQueued)
+        if (_applyQueued || _pendingCulture != null)
         {
             _applyQueued = false;
-            ApplyCulture();
+
+            var culture = _pendingCulture;
+            _pendingCulture = null;
+
+            if (culture != null)
+                ApplyCulture(culture);
+            else
+                ApplyCulture();
         }
 
         SyncLanguage(frameTime);
@@ -87,7 +84,7 @@ public sealed partial class LanguageSystem : EntitySystem
         RebuildUi();
     }
 
-    // Resend until the server answers: the channel may not be ready yet on connect.
+    // Resend until the server answers because the channel may not be ready yet
     private void SyncLanguage(float frameTime)
     {
         if (_player.LocalSession == null)
@@ -122,6 +119,9 @@ public sealed partial class LanguageSystem : EntitySystem
         _applyQueued = true;
         _rebuildQueued = true;
         ResetSync();
+
+        // Screens are cached anyway so always offer a restart
+        _restartPromptQueued = true;
     }
 
     private void OnLocalSessionChanged((ICommonSession? Old, ICommonSession? New) args)
@@ -136,24 +136,25 @@ public sealed partial class LanguageSystem : EntitySystem
         SendLanguage();
     }
 
-    // An explicit client pick always beats the server language.
     private void OnServerLanguage(ServerLanguageMessage message, EntitySessionEventArgs args)
     {
         _synced = true;
-
-        if (HasExplicitLanguage())
-            return;
 
         if (!Cultures.IsSupported(message.Culture))
             return;
 
         var culture = new CultureInfo(message.Culture);
 
+        // Client pick wins over the server language
+        if (HasExplicitLanguage())
+            return;
+
         if (_localization.DefaultCulture?.Name == culture.Name)
             return;
 
-        ApplyCulture(culture);
-        RebuildUi();
+        // Queued because a network handler runs outside the tick
+        _pendingCulture = culture;
+        _rebuildQueued = true;
     }
 
     private bool HasExplicitLanguage()
@@ -163,19 +164,21 @@ public sealed partial class LanguageSystem : EntitySystem
 
     private void ApplyCulture()
     {
+        // Same as server waits for the server reply to resolve it
         if (!HasExplicitLanguage())
             return;
 
         ApplyCulture(new CultureInfo(_configuration.GetCVar(ST14CVars.ClientLanguage)));
     }
 
-    private void ApplyCulture(CultureInfo culture)
+    private bool ApplyCulture(CultureInfo culture)
     {
         if (_localization.DefaultCulture?.Name == culture.Name)
-            return;
+            return false;
 
         _localization.SetCulture(culture);
         _localization.ReloadLocalizations();
+        return true;
     }
 
     private void SendLanguage()
@@ -186,28 +189,35 @@ public sealed partial class LanguageSystem : EntitySystem
         RaiseNetworkEvent(new SetLanguageMessage(_configuration.GetCVar(ST14CVars.ClientLanguage)));
     }
 
-    // XAML {Loc} is resolved once at load, so the windows have to be recreated.
+    // Screens are cached for the whole process so a restart prompt follows
     private void RebuildUi()
     {
-        switch (_state.CurrentState)
+        var previous = _state.CurrentState.GetType();
+
+        // Focus points at a control we dispose and that crashes on refocus
+        _ui.ReleaseKeyboardFocus();
+
+        _state.RequestStateChange<LanguageReloadState>();
+
+        // Stay in the empty state instead of leaving no UI at all
+        if (_state.CurrentState is LanguageReloadState)
+            _state.RequestStateChange(previous);
+
+        _randomNames.RefreshAll();
+
+        if (_restartPromptQueued)
         {
-            case GameplayState gameplay:
-                var escape = _ui.GetUIController<EscapeUIController>();
-                escape.OnStateExited(gameplay);
-                escape.OnStateEntered(gameplay);
-
-                _ui.GetUIController<OptionsUIController>().ReloadWindow();
-
-                _randomNames.RefreshAll();
-
-                gameplay.ReloadMainScreen();
-                break;
-
-            case LobbyState lobby:
-                var lobbyUi = _ui.GetUIController<LobbyUIController>();
-                lobbyUi.OnStateExited(lobby);
-                lobbyUi.OnStateEntered(lobby);
-                break;
+            _restartPromptQueued = false;
+            ShowRestartPrompt();
         }
+    }
+
+    private void ShowRestartPrompt()
+    {
+        if (_restartWindow is { Disposed: false })
+            _restartWindow.Close();
+
+        _restartWindow = new LanguageRestartWindow();
+        _restartWindow.OpenCentered();
     }
 }

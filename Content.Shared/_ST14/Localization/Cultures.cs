@@ -6,10 +6,10 @@ namespace Content.Shared._ST14.Localization;
 
 public static class Cultures
 {
-    // Base culture of the content, must match ContentLocalizationManager.Culture.
+    // Base culture of the content and must match ContentLocalizationManager.Culture
     public const string Default = "ru-RU";
 
-    // Empty means "no explicit pick", the client follows the server language.
+    // Empty means no explicit pick so the client follows the server language
     public const string Auto = "";
 
     public static readonly string[] Supported =
