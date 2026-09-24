@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using Content.Client.UserInterface.Screens;
 using Content.Client._ST14.Options; // ST14
 using Content.Shared.CCVar;
@@ -53,7 +53,6 @@ public sealed partial class MiscTab : Control
         Control.AddOptionCheckBox(CCVars.ChatEnableFancyBubbles, FancySpeechBubblesCheckBox);
         Control.AddOptionCheckBox(CCVars.ChatFancyNameBackground, FancyNameBackgroundsCheckBox);
         Control.AddOptionCheckBox(CCVars.StaticStorageUI, StaticStorageUI);
-        Control.AddOptionCheckBox(CCVars.InterfaceChatFollowButton, ChatFollowButton);
 
         LanguageOption.Add(Control, DropDownLanguage); // ST14
         Control.Initialize();
