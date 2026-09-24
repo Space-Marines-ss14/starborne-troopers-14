@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ﻿defaultWindowTitle: Starship Troopers 14
+=======
+defaultWindowTitle: Space Station 14
+>>>>>>> upstream/master
 windowIconSet: /Textures/Logo/icon
 splashLogo: /Textures/Logo/logo.png
 
