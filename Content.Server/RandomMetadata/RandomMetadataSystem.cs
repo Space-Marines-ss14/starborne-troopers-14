@@ -1,4 +1,5 @@
-﻿using Content.Shared.Dataset;
+using Content.Shared._ST14.Localization; // ST14
+using Content.Shared.Dataset;
 using Content.Shared.Random.Helpers;
 using JetBrains.Annotations;
 using Robust.Shared.Prototypes;
@@ -27,7 +28,15 @@ public sealed partial class RandomMetadataSystem : EntitySystem
 
         if (component.NameSegments != null)
         {
-            _metaData.SetEntityName(uid, GetRandomFromSegments(component.NameSegments, component.NameFormat), meta);
+            // ST14-START
+            var st14Parts = new List<string>();
+            _metaData.SetEntityName(uid, GetLocalizedFromSegments(component.NameSegments, component.NameFormat, st14Parts), meta);
+
+            var st14Localized = EnsureComp<RandomMetadataNameComponent>(uid);
+            st14Localized.Format = component.NameFormat;
+            st14Localized.Parts = st14Parts;
+            Dirty(uid, st14Localized);
+            // ST14-STOP
         }
 
         if (component.DescriptionSegments != null)
@@ -55,4 +64,23 @@ public sealed partial class RandomMetadataSystem : EntitySystem
 
         return Loc.GetString(format, _outputSegments.ToArray());
     }
+
+    // ST14-START
+    private string GetLocalizedFromSegments(List<ProtoId<LocalizedDatasetPrototype>> segments, LocId format, List<string> picked)
+    {
+        picked.Clear();
+        _outputSegments.Clear();
+
+        for (var i = 0; i < segments.Count; ++i)
+        {
+            var localizedProto = ProtoMan.Index(segments[i]);
+            var locId = localizedProto.Values[_random.Next(localizedProto.Values.Count)];
+
+            picked.Add(locId);
+            _outputSegments.Add(($"part{i}", Loc.GetString(locId)));
+        }
+
+        return Loc.GetString(format, _outputSegments.ToArray());
+    }
+    // ST14-STOP
 }

@@ -23,12 +23,14 @@ using Content.Server.Preferences.Managers;
 using Content.Server.ServerInfo;
 using Content.Server.ServerUpdates;
 using Content.Server.Voting.Managers;
+using Content.Shared._ST14.Localization; // ST14
 using Content.Shared.CCVar;
 using Content.Shared.Localizations;
 using Robust.Server;
 using Robust.Server.ServerStatus;
 using Robust.Shared.Configuration;
 using Robust.Shared.ContentPack;
+using Robust.Shared.Localization; // ST14
 using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization;
 using Robust.Shared.Timing;
@@ -56,6 +58,7 @@ namespace Content.Server.Entry
         [Dependency] private IChatSanitizationManager _chat = default!;
         [Dependency] private IComponentFactory _factory = default!;
         [Dependency] private IConfigurationManager _cfg = default!;
+        [Dependency] private ILocalizationManager _localization = default!; // ST14
         [Dependency] private IConnectionManager _connection = default!;
         [Dependency] private IEntitySystemManager _entSys = default!;
         [Dependency] private IGameMapManager _gameMap = default!;
@@ -110,6 +113,7 @@ namespace Content.Server.Entry
             _proto.RegisterIgnore("parallax");
 
             _loc.Initialize();
+            _localization.SetCulture(Cultures.ResolveServer(_cfg)); // ST14
 
             var dest = _cfg.GetCVar(CCVars.DestinationFile);
             if (!string.IsNullOrEmpty(dest))
@@ -162,7 +166,7 @@ namespace Content.Server.Entry
             _discordChatLink.Initialize();
             _euiManager.Initialize();
             _gameMap.Initialize();
-            _entSys.GetEntitySystem<GameTicker>().PostInitialize();
+            _entSys.GetEntitySystem<ServerGameTicker>().PostInitialize();
             _ban.Initialize();
             _connection.PostInit();
             _multiServerKick.Initialize();
