@@ -139,6 +139,13 @@ public sealed partial class ContentTileDefinition : IPrototype, IInheritingProto
     [DataField]
     public Dictionary<ProtoId<MaterialPrototype>, int> MaterialComposition = new();
 
+    // ST14-START
+    /// <summary>
+    /// Whether you can see the z-level below through this tile.
+    /// </summary>
+    [DataField] public bool Transparent = false;
+    // ST14-STOP
+
     public void AssignTileId(ushort id)
     {
         TileId = id;
