@@ -75,6 +75,7 @@
     collection: FootstepCatwalk
   friction: 1.5
   isSpace: true
+  transparent: true # ST14
   itemDrop: PartRodMetal1
   heatCapacity: 10000
   mass: 200

@@ -4,6 +4,7 @@
   friction: 0
   isSubfloor: true
   isSpace: true
+  transparent: true # ST14
   sturdy: false
   thermalConductivity: 0.4
   heatCapacity: 700000

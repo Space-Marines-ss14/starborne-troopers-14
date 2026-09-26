@@ -54,6 +54,7 @@
   - type: MobMover
   - type: MovementSpeedModifier
   - type: LagCompensation
+  - type: CEZPhysics # ST14
 
 - type: entity
   save: false
