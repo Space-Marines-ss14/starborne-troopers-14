@@ -54,4 +54,14 @@ entities:
         nodes: []
     - type: SpreaderGrid
     - type: GridPathfinding
+# Ladder from Z-1 up to Z0. Sits under the 2x2 hole in TestZ0 (x7..8, y7..8);
+# its north half is the 1.05 plateau, so you walk north into it from (7,7) and
+# step up into the empty Z0 tile at (7,8), landing next to the Z0 floor at (7,9).
+- proto: CEZLevelLadderWooden
+  entities:
+  - uid: 2
+    components:
+    - type: Transform
+      pos: 7.5,8.5
+      parent: 1
 ...
